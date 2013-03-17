@@ -5,8 +5,8 @@ module test;
 
     initial
     begin
-        #1 A=8'd8;
-        #1 B=8'd9;
+        #1 A=8'd10;
+        #1 B=8'd14;
         #1 clk=0;
         #20 $finish;
     end
