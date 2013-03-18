@@ -28,10 +28,11 @@ reg [7:0] value, address; //Value and address
 reg [31:0] temp_register; //Extrating memroy
 reg [31:0] memory[0:31]; //Memory
 reg [7:0] temp_value,temp_display1,temp_display2; //To store the converted value of the number
-reg idle,address_read; //Control Signals
+reg idle,address_read,mul_en; //Control Signals
 reg sign_1, sign_2;//For the sign bit
 wire temp_c_sub,temp_c_add; //To connect the CLAS's
-wire [7:0] add_output,sub_output,div_output,mul_output; //Storing the outputs of the various calculations
+wire [7:0] add_output,sub_output; //Storing the outputs of the various calculations
+wire [15:0] mul_output, div_output;
 
 //Functions
 function [6:0] bcd_number; //Function for converting a digit into equivalent bcd
@@ -115,7 +116,7 @@ begin
 	case(state)
 		RESET:
 			begin
-				address_read=0;
+				mul_en=0;address_read=0;
 				location_state=RESET;
 				address=0;value=0; //Values
 				di1=0;di2=0;di3=0;di4=0;di5=0;add1=0;add2=0;add4=0; //Debouncer variables
@@ -127,7 +128,7 @@ begin
 
 		IDLE:
 			begin
-				address_read=0;
+				mul_en=0;address_read=0;
 				location_state=RESET;
 				b4=7'b1001111;	//I
 				b3=7'b1000010;	//d
@@ -205,7 +206,8 @@ begin
 									b3=7'b1111110; //-
 								else
 									b3=7'b1111111; //
-
+								
+								b4=7'b1110110; //=
 								b2=bcd_number(temp_value[7:4]);
 								b1=bcd_number(temp_value[3:0]);
 							end
@@ -235,29 +237,31 @@ begin
 								else
 									b3=7'b1111111; //
 
+								b4=7'b1110110; //=
 								b2=bcd_number(temp_value[7:4]);
 								b1=bcd_number(temp_value[3:0]);
 							end
 						end
 					MUL:
 						begin
-							b2=bcd_number(temp_value[7:4]);
-							b1=bcd_number(temp_value[3:0]);
+							mul_en=1;
+							b4=bcd_number(mul_output[15:12]);
+							b3=bcd_number(mul_output[11:8]);
+							b2=bcd_number(mul_output[7:4]);
+							b1=bcd_number(mul_output[3:0]);
 						end
 					DIV:
 						begin
 							b2=bcd_number(div_output[7:4]);
 							b1=bcd_number(div_output[3:0]);
 						end
-
 					default:
 						begin
+							b4=7'b1110110; //=
 							b2=7'b1111110; //-
 							b1=7'b1111110; //-
 						end
 				endcase
-
-				b4=7'b1110110; //=
 			end
 
 		WRITE:
@@ -479,6 +483,7 @@ end
 //Performing the different Computations
 ripple_cla RIPPLE_CLA1(.c_in(0), .c_out(temp_c_add), .A(temp_register[15:8]), .B(temp_register[23:16]), .Output(add_output));
 ripple_cla RIPPLE_CLA2(.c_in(1), .c_out(temp_c_sub), .A(temp_register[15:8]), .B(temp_register[23:16]), .Output(sub_output));
+booth_multiplier BOOTH(.clk(clk), .A(temp_register[15:8]), .B(temp_register[23:16]), .en(mul_en), .Output(mul_output));
 
 //Display Block
 display_module DISPLAY1(.clk(clk), .b1(b1), .b2(b2), .b3(b3), .b4(b4), .output_bcd(bcd), .output_o1(o1), .output_o2(o2), .output_o3(o3), .output_o4(o4));
