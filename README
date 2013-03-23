@@ -1,0 +1,2 @@
+This is a simple ALU created by my group segfault for our Computer Organization Course.
+This features a memory module, booth multiplier, a ripple CLA adder/subtractor.
